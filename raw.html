@@ -21,7 +21,7 @@
       <h2 class="text-sm border-b border-[#33ff33]/30 pb-2 mb-4">SENSOR READINGS</h2>
       <div class="mb-6">
         <p class="text-xs text-[#33ff33]/70">GP2Y1010AU0F (Dust) - PIN 34</p>
-        <p class="text-4xl font-bold mt-1" id="raw-dust">0.00 <span class="text-sm font-normal">µg/m³</span></p>
+        <p class="text-4xl font-bold mt-1" id="raw-dust">0.0 <span class="text-sm font-normal">µg/m³</span></p>
       </div>
       <div>
         <p class="text-xs text-[#33ff33]/70">MQ135 (Total VOC) - PIN 35</p>
@@ -60,7 +60,7 @@
         calculatedPPM = 400 + ((rawGas - 400) * 0.55);
       }
 
-      document.getElementById('raw-dust').innerHTML = `${(data.dust_density || 0).toFixed(3)} <span class="text-sm font-normal">µg/m³</span>`;
+      document.getElementById('raw-dust').innerHTML = `${(data.dust_density || 0).toFixed(1)} <span class="text-sm font-normal">µg/m³</span>`;
       document.getElementById('raw-gas').innerHTML = `${Math.round(calculatedPPM)} <span class="text-sm font-normal">ppm</span>`;
       document.getElementById('raw-gas-adc').innerText = `ADC: ${rawGas}`;
       document.getElementById('raw-state').innerText = `STATE: ${data.status || "CLEAN"}`;
