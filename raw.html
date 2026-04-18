@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AERIS — Raw Telemetry Console</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <script>tailwind.config = { theme: { extend: { fontFamily: { mono: ['Space Mono', 'monospace'] } } } }</script>
+  <style> body { background-color: #050505; color: #33ff33; font-family: 'Space Mono', monospace; } </style>
+</head>
+<body class="p-8">
+  <header class="border-b border-[#33ff33] pb-4 mb-8">
+    <h1 class="text-2xl font-bold uppercase tracking-widest">AERIS // HARDWARE DIAGNOSTICS</h1>
+    <p class="text-xs mt-1 text-[#33ff33]/70">Direct ESP32 Firebase Stream (Bypassing Presentation Logic)</p>
+  </header>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+    
+    <div class="border border-[#33ff33]/30 p-6 rounded bg-[#0a0a0a]">
+      <h2 class="text-sm border-b border-[#33ff33]/30 pb-2 mb-4">SENSOR READINGS</h2>
+      <div class="mb-6">
+        <p class="text-xs text-[#33ff33]/70">GP2Y1010AU0F (Dust) - PIN 34</p>
+        <p class="text-4xl font-bold mt-1" id="raw-dust">0.00 <span class="text-sm font-normal">mg/m³</span></p>
+      </div>
+      <div>
+        <p class="text-xs text-[#33ff33]/70">MQ135 (Gas/VOC) - PIN 35</p>
+        <p class="text-4xl font-bold mt-1" id="raw-gas">0000 <span class="text-sm font-normal">ADC</span></p>
+      </div>
+    </div>
+
+    <div class="border border-[#33ff33]/30 p-6 rounded bg-[#0a0a0a]">
+      <h2 class="text-sm border-b border-[#33ff33]/30 pb-2 mb-4">ACTUATOR STATUS</h2>
+      <div class="mb-6">
+        <p class="text-xs text-[#33ff33]/70">Centrifugal Blower Relay</p>
+        <p class="text-2xl font-bold mt-1 text-red-500 animate-pulse">100% [HARDWIRED TO VCC]</p>
+        <p class="text-xs text-red-500/70 mt-1">CIRCUIT SEALED - PWM OVERRIDDEN</p>
+      </div>
+      <div>
+        <p class="text-xs text-[#33ff33]/70">System State</p>
+        <p class="text-2xl font-bold mt-1" id="raw-state">AWAITING SYNC</p>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+    const firebaseConfig = { apiKey: "AIzaSyCeQan2EK1OQVxhsDMsQ793mHdl4LxuMwI", authDomain: "aeris-monitor.firebaseapp.com", databaseURL: "https://aeris-monitor-default-rtdb.asia-southeast1.firebasedatabase.app", projectId: "aeris-monitor" };
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    onValue(ref(db, '/aeris/live'), (snapshot) => {
+      const data = snapshot.val(); if (!data) return;
+      document.getElementById('raw-dust').innerHTML = `${(data.dust_density || 0).toFixed(3)} <span class="text-sm font-normal">mg/m³</span>`;
+      document.getElementById('raw-gas').innerHTML = `${data.mq135_raw || 0} <span class="text-sm font-normal">ADC</span>`;
+      document.getElementById('raw-state').innerText = `STATE: ${data.status || "CLEAN"}`;
+    });
+  </script>
+</body>
+</html>
