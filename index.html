@@ -16,6 +16,9 @@
     .glow-poor { box-shadow: 0 0 30px rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3); }
     .turbine-ring { position: absolute; right: -20px; bottom: -40px; width: 140px; height: 140px; border-radius: 50%; border: 2px dashed rgba(56, 189, 248, 0.2); border-top: 2px solid rgba(56, 189, 248, 0.8); animation: spin 0.6s linear infinite; }
     @keyframes spin { 100% { transform: rotate(360deg); } }
+    .circular-chart { display: block; margin: 0 auto; max-width: 80%; max-height: 250px; }
+    .circle-bg { fill: none; stroke: rgba(255,255,255,0.05); stroke-width: 3.8; }
+    .circle { fill: none; stroke-width: 3.8; stroke-linecap: round; transition: stroke-dasharray 1s ease-out; }
   </style>
 </head>
 <body class="p-4 sm:p-8 flex flex-col items-center">
@@ -45,6 +48,20 @@
       <div class="w-full h-40 mt-6 z-10"><canvas id="aqiChart"></canvas></div>
     </div>
     <div class="md:col-span-4 flex flex-col gap-6">
+      
+      <div class="glass-card p-6 flex flex-col items-center justify-center relative overflow-hidden h-48">
+        <h2 class="font-mono text-[10px] text-slate-400 uppercase tracking-widest absolute top-4 left-6">HEPA Filter Integrity</h2>
+        <div class="mt-4 relative w-32 h-32">
+          <svg viewBox="0 0 36 36" class="circular-chart text-emerald-400 w-full h-full drop-shadow-[0_0_10px_rgba(52,211,153,0.3)]">
+            <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+            <path class="circle stroke-current" id="filter-ring" stroke-dasharray="100, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+          </svg>
+          <div class="absolute inset-0 flex flex-col items-center justify-center">
+            <span id="filter-value" class="text-2xl font-bold text-white">100%</span>
+          </div>
+        </div>
+      </div>
+
       <div class="glass-card p-6 grid grid-cols-2 gap-4">
         <div class="border-r border-slate-700/50 pr-4">
           <h2 class="font-mono text-[10px] text-slate-400 uppercase tracking-widest mb-2">Ambient Temp</h2>
@@ -74,15 +91,34 @@
     let gradient = ctx.createLinearGradient(0, 0, 0, 150); gradient.addColorStop(0, 'rgba(16, 185, 129, 0.4)'); gradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
     const aqiChart = new Chart(ctx, { type: 'line', data: { labels: Array(25).fill(''), datasets: [{ data: Array(25).fill(0), borderColor: '#34d399', borderWidth: 2.5, backgroundColor: gradient, fill: true, tension: 0.5, pointRadius: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false, min: 0 } }, animation: { duration: 800 } } });
 
+    let filterLife = localStorage.getItem("aeris_filter_life");
+    if (!filterLife) { filterLife = 100.00; localStorage.setItem("aeris_filter_life", filterLife); }
+
     onValue(ref(db, '/aeris/live'), (snapshot) => {
       const data = snapshot.val(); if (!data) return;
-      const dust = data.dust_density ?? 0; const gas = data.mq135_raw ?? 0;
+      
+      const dust = data.dust_density ?? 0; 
+      const rawGas = data.mq135_raw ?? 0;
+      
+      // PPM Algorithm Math
+      let calculatedPPM = 400; 
+      if (rawGas > 400) {
+        calculatedPPM = 400 + ((rawGas - 400) * 0.55);
+      }
+
       document.getElementById('dust-value').textContent = dust.toFixed(2);
-      document.getElementById('gas-value').textContent = gas;
+      document.getElementById('gas-value').textContent = Math.round(calculatedPPM);
       
       const isPolluted = (data.status === "POOR");
       const pill = document.getElementById('aqi-pill'); const mainCard = document.getElementById('main-card'); const cardGlow = document.getElementById('card-glow');
       
+      // Filter Wear Math (Hardcoded 80 fan speed)
+      const wearTick = (dust * 80) * 0.0005; 
+      filterLife = Math.max(0, parseFloat(filterLife) - wearTick);
+      localStorage.setItem("aeris_filter_life", filterLife.toFixed(4));
+      document.getElementById('filter-value').textContent = Math.floor(filterLife) + "%";
+      document.getElementById('filter-ring').setAttribute('stroke-dasharray', `${Math.floor(filterLife)}, 100`);
+
       if(!isPolluted) { 
         mainCard.className = "glass-card p-8 md:col-span-8 transition-all duration-1000 glow-good flex flex-col justify-between h-full relative overflow-hidden";
         cardGlow.className = "absolute -top-32 -left-32 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl";
