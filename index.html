@@ -37,7 +37,7 @@
         <span id="aqi-pill" class="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest bg-emerald-500/20 text-emerald-400 border border-emerald-500/50">CLEAN</span>
       </div>
       <div class="mt-8 flex items-baseline gap-3 z-10">
-        <span id="dust-value" class="text-8xl font-light text-white tracking-tighter">0.00</span>
+        <span id="dust-value" class="text-8xl font-light text-white tracking-tighter">0.0</span>
         <span class="font-mono text-lg text-slate-400">µg/m³</span>
       </div>
       <div class="mt-2 flex items-baseline gap-3 z-10">
@@ -91,6 +91,7 @@
     let gradient = ctx.createLinearGradient(0, 0, 0, 150); gradient.addColorStop(0, 'rgba(16, 185, 129, 0.4)'); gradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
     const aqiChart = new Chart(ctx, { type: 'line', data: { labels: Array(25).fill(''), datasets: [{ data: Array(25).fill(0), borderColor: '#34d399', borderWidth: 2.5, backgroundColor: gradient, fill: true, tension: 0.5, pointRadius: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false, min: 0 } }, animation: { duration: 800 } } });
 
+    let previousDustHistory = [];
     let filterLife = localStorage.getItem("aeris_filter_life");
     if (!filterLife) { filterLife = 100.00; localStorage.setItem("aeris_filter_life", filterLife); }
 
@@ -106,14 +107,42 @@
         calculatedPPM = 400 + ((rawGas - 400) * 0.55);
       }
 
-      document.getElementById('dust-value').textContent = dust.toFixed(2);
+      document.getElementById('dust-value').textContent = dust.toFixed(1);
       document.getElementById('gas-value').textContent = Math.round(calculatedPPM);
       
       const isPolluted = (data.status === "POOR");
       const pill = document.getElementById('aqi-pill'); const mainCard = document.getElementById('main-card'); const cardGlow = document.getElementById('card-glow');
       
-      // Filter Wear Math (Hardcoded 80 fan speed)
-      const wearTick = (dust * 80) * 0.0005; 
+      // Trend Analytics (Updated for Micrograms)
+      previousDustHistory.push(dust);
+      if (previousDustHistory.length > 5) previousDustHistory.shift();
+      
+      if (previousDustHistory.length === 5) {
+        const oldest = previousDustHistory[0];
+        const newest = previousDustHistory[4];
+        const delta = newest - oldest;
+        
+        // Use a realistic delta threshold for the new ug/m3 scale
+        const trendText = document.getElementById('trend-text');
+        const trendIcon = document.getElementById('trend-icon');
+        
+        if (delta > 2.0) { 
+          trendText.textContent = "Air Quality Degrading";
+          trendIcon.textContent = "↑";
+          trendIcon.className = "text-red-400 font-bold";
+        } else if (delta < -2.0) { 
+          trendText.textContent = "Active Purification";
+          trendIcon.textContent = "↓";
+          trendIcon.className = "text-emerald-400 font-bold";
+        } else {
+          trendText.textContent = "Environment Stable";
+          trendIcon.textContent = "≈";
+          trendIcon.className = "text-slate-400 font-bold";
+        }
+      }
+
+      // Filter Wear Math (Updated multiplier for the new ug/m3 values)
+      const wearTick = (dust * 80) * 0.000005; 
       filterLife = Math.max(0, parseFloat(filterLife) - wearTick);
       localStorage.setItem("aeris_filter_life", filterLife.toFixed(4));
       document.getElementById('filter-value').textContent = Math.floor(filterLife) + "%";
