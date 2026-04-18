@@ -25,16 +25,17 @@
       </div>
       <div>
         <p class="text-xs text-[#33ff33]/70">MQ135 (Total VOC) - PIN 35</p>
-        <p class="text-4xl font-bold mt-1" id="raw-gas">0000 <span class="text-sm font-normal">ppm</span></p>
+        <p class="text-4xl font-bold mt-1" id="raw-gas">0 <span class="text-sm font-normal">ppm</span></p>
+        <p class="text-xs text-[#33ff33]/70 mt-1" id="raw-gas-adc">ADC: 0</p>
       </div>
     </div>
 
     <div class="border border-[#33ff33]/30 p-6 rounded bg-[#0a0a0a]">
       <h2 class="text-sm border-b border-[#33ff33]/30 pb-2 mb-4">ACTUATOR STATUS</h2>
       <div class="mb-6">
-        <p class="text-xs text-[#33ff33]/70">Centrifugal Blower Relay</p>
-        <p class="text-2xl font-bold mt-1 text-red-500 animate-pulse">100% [HARDWIRED TO VCC]</p>
-        <p class="text-xs text-red-500/70 mt-1">CIRCUIT SEALED - PWM OVERRIDDEN</p>
+        <p class="text-xs text-[#33ff33]/70">Centrifugal Blower Power</p>
+        <p class="text-2xl font-bold mt-1 text-red-500 animate-pulse">100% [DIRECT 12V RAIL]</p>
+        <p class="text-xs text-red-500/70 mt-1">CIRCUIT SEALED - PWM LOGIC BYPASSED</p>
       </div>
       <div>
         <p class="text-xs text-[#33ff33]/70">System State</p>
@@ -52,8 +53,16 @@
 
     onValue(ref(db, '/aeris/live'), (snapshot) => {
       const data = snapshot.val(); if (!data) return;
+      
+      const rawGas = data.mq135_raw || 0;
+      let calculatedPPM = 400; 
+      if (rawGas > 400) {
+        calculatedPPM = 400 + ((rawGas - 400) * 0.55);
+      }
+
       document.getElementById('raw-dust').innerHTML = `${(data.dust_density || 0).toFixed(3)} <span class="text-sm font-normal">µg/m³</span>`;
-      document.getElementById('raw-gas').innerHTML = `${data.mq135_raw || 0} <span class="text-sm font-normal">ppm</span>`;
+      document.getElementById('raw-gas').innerHTML = `${Math.round(calculatedPPM)} <span class="text-sm font-normal">ppm</span>`;
+      document.getElementById('raw-gas-adc').innerText = `ADC: ${rawGas}`;
       document.getElementById('raw-state').innerText = `STATE: ${data.status || "CLEAN"}`;
     });
   </script>
