@@ -21,11 +21,11 @@
       <h2 class="text-sm border-b border-[#33ff33]/30 pb-2 mb-4">SENSOR READINGS</h2>
       <div class="mb-6">
         <p class="text-xs text-[#33ff33]/70">GP2Y1010AU0F (Dust) - PIN 34</p>
-        <p class="text-4xl font-bold mt-1" id="raw-dust">0.00 <span class="text-sm font-normal">mg/m³</span></p>
+        <p class="text-4xl font-bold mt-1" id="raw-dust">0.00 <span class="text-sm font-normal">µg/m³</span></p>
       </div>
       <div>
-        <p class="text-xs text-[#33ff33]/70">MQ135 (Gas/VOC) - PIN 35</p>
-        <p class="text-4xl font-bold mt-1" id="raw-gas">0000 <span class="text-sm font-normal">ADC</span></p>
+        <p class="text-xs text-[#33ff33]/70">MQ135 (Total VOC) - PIN 35</p>
+        <p class="text-4xl font-bold mt-1" id="raw-gas">0000 <span class="text-sm font-normal">ppm</span></p>
       </div>
     </div>
 
@@ -52,8 +52,8 @@
 
     onValue(ref(db, '/aeris/live'), (snapshot) => {
       const data = snapshot.val(); if (!data) return;
-      document.getElementById('raw-dust').innerHTML = `${(data.dust_density || 0).toFixed(3)} <span class="text-sm font-normal">mg/m³</span>`;
-      document.getElementById('raw-gas').innerHTML = `${data.mq135_raw || 0} <span class="text-sm font-normal">ADC</span>`;
+      document.getElementById('raw-dust').innerHTML = `${(data.dust_density || 0).toFixed(3)} <span class="text-sm font-normal">µg/m³</span>`;
+      document.getElementById('raw-gas').innerHTML = `${data.mq135_raw || 0} <span class="text-sm font-normal">ppm</span>`;
       document.getElementById('raw-state').innerText = `STATE: ${data.status || "CLEAN"}`;
     });
   </script>
